@@ -1,59 +1,99 @@
-version: "3.5"
-
+version: "3.8"
+# networks:
+#     inception_net: {}
 networks:
-    inception: {}
+    default:
+        name: inception_net
 
 services:
     nginx:
         container_name: nginx
         build: ./nginx
-
         image: nginx
-        networks:
-            - inception
         ports:
             - 443:443
         depends_on:
             - wordpress
             - mariadb
-        restart: always
         volumes:
-          - wordpress_data:/var/www/html
+          - /home/eabdelha/data/wordpress:/var/www/html
+        restart: always
 
     wordpress:
+        init: true
         container_name: wordpress
         image: wordpress
         build: 
             context: ./wordpress
         env_file:
             - .env
-        networks:
-            - inception
         depends_on:
             - mariadb
-        restart: always
         volumes:
-          - wordpress_data:/var/www/html
+          - /home/eabdelha/data/wordpress:/var/www/html
+        restart: always
     mariadb:
+        init: true
         container_name: mariadb
         image: mariadb
         build: 
             context: ./mariadb
-        networks:
-            - inception
         volumes:
-            - mariadb_data:/var/lib/mysql
+            - /home/eabdelha/data/mariadb:/var/lib/mysql
         env_file:
             - .env
         restart: always
-volumes:
-    wordpress_data:
-        driver_opts:
-            type: "none"
-            o: "bind"
-            device: "/var/data/wordpress"
-    mariadb_data:
-        driver_opts:
-            type: "none"
-            o: "bind"
-            device: "/var/data/mariadb"
+    redis:
+        init: true
+        container_name: redis
+        image: redis
+        build: ./bonus/redis
+        depends_on:
+            - wordpress
+        env_file:
+            - .env
+        volumes:
+            - /home/eabdelha/data/wordpress:/var/www/html
+        restart: always
+    ftp:
+        init: true
+        container_name: ftp
+        image: ftp
+        build: ./bonus/FTP_server
+        volumes:
+            - /home/eabdelha/data/wordpress:/var/www/html
+        ports:
+            - "21:21"
+            - "21100-21110:21100-21110"
+        env_file:
+            - .env
+        restart: always
+    adminer:
+        container_name: adminer
+        image: adminer
+        build: ./bonus/Adminer
+        volumes:
+            - /home/eabdelha/data/wordpress:/var/www/html
+        restart: on-failure
+
+    static_web:
+        container_name: static_web
+        image: static_web
+        build: ./bonus/static_web
+        volumes:
+            - /home/eabdelha/data/hugo:/var/www/hugo
+        restart: on-failure
+    hugo:
+        init: true
+        container_name: hugo
+        image: hugo
+        build: ./bonus/hugo
+        depends_on:
+            - static_web
+        ports:
+            - "1313:1313"
+        env_file:
+            - .env
+        volumes:
+            - /home/eabdelha/data/hugo:/var/www/hugo
+        restart: always
