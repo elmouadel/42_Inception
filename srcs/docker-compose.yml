@@ -1,6 +1,5 @@
 version: "3.8"
-# networks:
-#     inception_net: {}
+
 networks:
     default:
         name: inception_net
@@ -16,9 +15,8 @@ services:
             - wordpress
             - mariadb
         volumes:
-          - /home/eabdelha/data/wordpress:/var/www/html
+            - wordpress_data:/var/www/html
         restart: always
-
     wordpress:
         init: true
         container_name: wordpress
@@ -30,7 +28,7 @@ services:
         depends_on:
             - mariadb
         volumes:
-          - /home/eabdelha/data/wordpress:/var/www/html
+            - wordpress_data:/var/www/html
         restart: always
     mariadb:
         init: true
@@ -39,7 +37,7 @@ services:
         build: 
             context: ./mariadb
         volumes:
-            - /home/eabdelha/data/mariadb:/var/lib/mysql
+            - mariadb_data:/var/lib/mysql
         env_file:
             - .env
         restart: always
@@ -53,7 +51,7 @@ services:
         env_file:
             - .env
         volumes:
-            - /home/eabdelha/data/wordpress:/var/www/html
+            - wordpress_data:/var/www/html
         restart: always
     ftp:
         init: true
@@ -61,7 +59,7 @@ services:
         image: ftp
         build: ./bonus/FTP_server
         volumes:
-            - /home/eabdelha/data/wordpress:/var/www/html
+            - wordpress_data:/var/www/html
         ports:
             - "21:21"
             - "21100-21110:21100-21110"
@@ -72,16 +70,17 @@ services:
         container_name: adminer
         image: adminer
         build: ./bonus/Adminer
+        depends_on:
+            - wordpress
         volumes:
-            - /home/eabdelha/data/wordpress:/var/www/html
+            - wordpress_data:/var/www/html
         restart: on-failure
-
     static_web:
         container_name: static_web
         image: static_web
         build: ./bonus/static_web
         volumes:
-            - /home/eabdelha/data/hugo:/var/www/hugo
+            - hugo_data:/var/www/hugo
         restart: on-failure
     hugo:
         init: true
@@ -95,5 +94,25 @@ services:
         env_file:
             - .env
         volumes:
-            - /home/eabdelha/data/hugo:/var/www/hugo
+            - hugo_data:/var/www/hugo
         restart: always
+
+volumes:
+    wordpress_data:
+        driver: local
+        driver_opts:
+            o: "bind"
+            type: "none"
+            device: "/home/eabdelha/data/wordpress"
+    mariadb_data:
+        driver: local
+        driver_opts:
+            o: "bind"
+            type: "none"
+            device: "/home/eabdelha/data/mariadb"
+    hugo_data:
+        driver: local
+        driver_opts:
+            o: "bind"
+            type: "none"
+            device: "/home/eabdelha/data/hugo"
